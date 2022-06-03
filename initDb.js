@@ -20,7 +20,7 @@ const { connectToDb, getDbReference, closeDbConnection } = require('./lib/mongo'
 const { bulkInsertNewUsers } = require('./models/user')
 
 
-const usersData = require('./data/users.json')
+const usersData = require('./DATA/users.json')
 
 const mongoCreateUser = process.env.MONGO_CREATE_USER
 const mongoCreatePassword = process.env.MONGO_CREATE_PASSWORD
