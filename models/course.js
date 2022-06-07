@@ -45,8 +45,8 @@ async function getCoursesPage(page) {
       pageSize: pageSize,
       count: count
     }
-  }
-  exports.getCoursesPage = getCoursesPage
+}
+exports.getCoursesPage = getCoursesPage
 
 /*
  * Executes a DB query to insert a new course into the database.  Returns
@@ -59,8 +59,8 @@ async function insertNewCourse(course) {
     course = extractValidFields(course, CourseSchema)
     const result = await collection.insertOne(course)
     return result.insertedId
-  }
-  exports.insertNewCourse = insertNewCourse
+}
+exports.insertNewCourse = insertNewCourse
 
 /*
  * Returns summary data about the Course, excluding the list of students 
@@ -70,11 +70,11 @@ async function getCourseById(id){
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.find({
-      _id: new ObjectId(id)
+        _id: new ObjectId(id)
     }).toArray()  
     return courses[0];
-  }
-  exports.getCourseById = getCourseById
+}
+exports.getCourseById = getCourseById
 
 /*
  * Returns a list containing the User IDs of all students currently enrolled in the Course. 
@@ -85,14 +85,29 @@ async function UpdateOneCourse(id, course){
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.replaceOne(
-      { _id: new ObjectId(id)},
-      { subject: course.subject,
-        number: course.number,
-        title: course.title,
-        term: course.term,
-        instructorId: course.instructorId
-      }
+        { _id: new ObjectId(id)},
+        {
+            subject: course.subject,
+            number: course.number,
+            title: course.title,
+            term: course.term,
+            instructorId: course.instructorId
+        }
     )
     return courses
-  }
-  exports.UpdateOneCourse = UpdateOneCourse
+}
+exports.UpdateOneCourse = UpdateOneCourse
+
+/*
+ * Completely removes the data for the specified Course, including all enrolled students, 
+ * all Assignments, etc. Only an authenticated User with 'admin' role can remove a Course.
+ */
+async function DeleteOneCourse(id){
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.deleteOne({
+        _id: new ObjectId(id)
+    })
+    return courses
+}
+exports.DeleteOneCourse = DeleteOneCourse
