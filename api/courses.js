@@ -1,9 +1,11 @@
 const { Router } = require('express')
 const { validateAgainstSchema } = require('../lib/validation')
 const {
-    getCoursesPage, 
     CourseSchema, 
-    insertNewCourse
+    getCoursesPage, 
+    insertNewCourse,
+    getCourseById,
+    UpdateOneCourse
 } = require('../models/course')
 
 const router = Router()
@@ -36,7 +38,7 @@ router.get('/', async (req, res) => {
     }
   })
 
-  /*
+/*
  * POST /courses - Route to create a new courses.
  */
 router.post('/', async (req, res) => {
@@ -59,4 +61,43 @@ router.post('/', async (req, res) => {
     }
   })
 
-  module.exports = router
+/*
+ * GET /courses/{id} - Route to fetch info about a specific course.
+ */
+router.get('/:id', async (req, res, next) => {
+    try {
+      const course = await getCourseById(req.params.id)
+      if (course) {
+        res.status(200).send(course)
+      } else {
+        next()
+      }
+    } catch (err) {
+      console.error(err)
+      res.status(500).send({
+        error: "Unable to fetch course.  Please try again later."
+      })
+    }
+  })
+
+/*
+ * PATCH /courses/{id} - Update data for a specific Course.
+ */
+router.put('/:id', async (req, res, next) =>{
+    try {
+        const course = await UpdateOneCourse(req.params.id, req.body)
+        if (course) {
+          res.status(200).send(course)
+        } else {
+          next()
+        }
+      } catch (err) {
+        console.error(err)
+        res.status(500).send({
+          error: "Unable to update course.  Please try again later."
+        })
+      }
+})
+
+
+module.exports = router
