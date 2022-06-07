@@ -1,7 +1,9 @@
 const { Router } = require('express')
 const { validateAgainstSchema } = require('../lib/validation')
 const {
-    getCoursesPage, CourseSchema, insertNewCourse
+    getCoursesPage, 
+    CourseSchema, 
+    insertNewCourse
 } = require('../models/course')
 
 const router = Router()
@@ -56,3 +58,5 @@ router.post('/', async (req, res) => {
       })
     }
   })
+
+  module.exports = router
