@@ -7,8 +7,19 @@ const {
     getCourseById,
     updateOneCourse,
     deleteOneCourse
+    // getStudentByCourseId
 } = require('../models/course')
+const {
+    UserSchema,
+    getUserById,
+    getUserByEmail
+    // getStudentByCourseId
+} = require('../models/user')
 
+const { generateAuthToken, requireAuthentication} = require('../lib/auth')
+
+const fs = require('fs');
+const stringify = require('csv-stringify');
 const router = Router()
 
 /*
@@ -119,5 +130,29 @@ router.delete('/:id', async (req, res, next) =>{
     }
 })
 
+// get the course student info list into csv file
+router.get('/:id/roster', async (req, res, next) =>{
+    try {
+        const course = await getCourseById(req.params.id)
+        // if (req.role == "admin" || (req.role == "instructor" && req.userId == course.instructorId)){
+        //     // const studentSet = getStudentByCourseId(req.params.id)
+        // }
+        const studentIds = course.students
+        
+        const data = JSON.stringify(studentIds, {header: false})
+        console.log(data)
+        fs.writeFile('./roster.csv', data, (err) => {
+            if (err) throw err;
+            const filename = './roster.csv'
+            res.status(200).download(filename)
+        })
+        
+    }catch (err) {
+        console.error(err)
+        res.status(500).send({
+            error: "Unable get the roster.  Please try again later."
+        })
+    }
+})
 
 module.exports = router
