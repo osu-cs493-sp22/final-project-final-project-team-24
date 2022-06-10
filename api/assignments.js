@@ -8,7 +8,26 @@ const {
     updateOneAssignment,
     deleteOneAssignment
 } = require('../models/assignment')
-const { getByIdWithoutStu } = require('../models/course')
+const {
+    SubmissionSchema,
+    getSubmissionPage,
+    insertNewSubmission,
+    saveFile
+} = require('../models/submission')
+const { getByIdWithoutStu, getCourseById } = require('../models/course')
+const multer = require('multer')
+const crypto = require("crypto")
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: `${__dirname}/../uploads`,
+        filename: function (req, file, callback) {
+            const ext = file.originalname.split('.')[1]
+            const filename = crypto.pseudoRandomBytes(16).toString('hex')
+            callback(null, `${filename}.${ext}`)
+        }
+    })
+})
 
 const router = Router()
 
@@ -131,6 +150,13 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
             res.status(404).send({
                 error: "Specified assignment id not found."
             })
+            return
+        }
+        const deleted = await deleteOneAssignment(req.params.id)
+        if (deleted) {
+            res.status(204).send()
+        } else {
+            next()
         }
     } catch (err) {
         console.error(err)
@@ -140,5 +166,80 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
     }
 })
 
+
+router.get('/:id/submissions', requireAuthentication, async (req, res, next) => {
+    try {
+        const assignment = await getAssignmentById(req.params.id)
+        const course = await getByIdWithoutStu(assignment.courseId)
+        if (req.role != "admin" && course.instructorId != req.user) {
+            res.status(403).send({
+                err: "Only admin or instructor user can fetch submission!"
+            })
+            return
+        }
+        if (assignment) {
+            const submissionsePage = await getSubmissionPage(parseInt(req.query.page) || 1, req.query.studentId || '')
+            submissionsePage.links = {}
+            if (submissionsePage.page < submissionsePage.totalPages) {
+                submissionsePage.links.nextPage = `/courses?page=${submissionsePage.page + 1}`
+                submissionsePage.links.lastPage = `/courses?page=${submissionsePage.totalPages}`
+            }
+            if (submissionsePage.page > 1) {
+                submissionsePage.links.prevPage = `/courses?page=${submissionsePage.page - 1}`
+                submissionsePage.links.firstPage = '/courses?page=1'
+            }
+            res.status(200).send(submissionsePage)
+        } else {
+            next()
+        }
+    } catch (err) {
+        console.error(err)
+        res.status(500).send({
+            error: "Unable to fetch submissions.  Please try again later."
+        })
+    }
+})
+
+
+router.post('/:id/submissions', [requireAuthentication, upload.single('file')], async (req, res) => {
+    console.log(req.user)
+    console.log(req.file)
+    if (req.params.id && req.file) {
+        try {
+            const assignment = await getAssignmentById(req.params.id)
+            const course = await getCourseById(assignment.courseId)
+
+            if (course.students && course.students.includes(req.user)) {
+                const id = await insertNewSubmission({
+                    assignmentId: req.params.id,
+                    studentId: req.user,
+                    timestamp: new Date().toISOString()
+                });
+                const fid = await saveFile({
+                    filename: req.file.filename,
+                    path: req.file.path
+                })
+
+                res.status(201).send({
+                    id: id,
+                    file: "/file/" + fid
+                })
+            } else {
+                res.status(403).send({
+                    err: "Only enrolled student can post submission!"
+                })
+            }
+        } catch (err) {
+            console.error(err)
+            res.status(500).send({
+                error: "Unable to post submissions.  Please try again later."
+            })
+        }
+    } else {
+        res.status(400).send({
+            error: "Request params or body is not a valid submission object."
+        })
+    }
+})
 
 module.exports = router

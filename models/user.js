@@ -63,6 +63,21 @@ async function getUserById(id) {
 }
 exports.getUserById = getUserById
 
+async function getUserByIdWithId(id) {
+    const db = getDbReference()
+    const collection = db.collection('users')
+    if (!ObjectId.isValid(id)) {
+        return null
+    } else {
+        const results = await collection
+            .find({ _id: new ObjectId(id) })
+            .project( { password: 0 } )
+            .toArray()
+        return results[0]
+    }
+}
+exports.getUserByIdWithId = getUserByIdWithId
+
 
 async function getUserByEmail(email) {
     const db = getDbReference()
