@@ -7,7 +7,7 @@ const AssignmentSchema = {
     courseId: { required: true },
     title: { required: true },
     points: { required: true },
-    due: { required: true}
+    due: { required: true }
 }
 
 exports.AssignmentSchema = AssignmentSchema
@@ -20,7 +20,7 @@ exports.AssignmentSchema = AssignmentSchema
 async function insertNewAssignment(assignment) {
     const db = getDbReference()
     const collection = db.collection('assignments')
-    
+
     assignment = extractValidFields(assignment, AssignmentSchema)
     const result = await collection.insertOne(assignment)
     return result.insertedId
@@ -30,12 +30,14 @@ exports.insertNewAssignment = insertNewAssignment
 /*
  * Returns summary data about the Assignment, excluding the list of Submissions
  */
-async function getAssignmentById(id){
+async function getAssignmentById(id) {
     const db = getDbReference()
     const collection = db.collection('assignments')
     const assignments = await collection.find({
         _id: new ObjectId(id)
-    }).toArray()  
+    })
+        .project({ _id: 0 })
+        .toArray()
     return assignments[0];
 }
 exports.getAssignmentById = getAssignmentById
@@ -46,16 +48,18 @@ exports.getAssignmentById = getAssignmentById
  * an authenticated 'instructor' User whose ID matches the instructorId of the Course 
  * corresponding to the Assignment's courseId can update an Assignment.
  */
-async function updateOneAssignment(id, assignment){
+async function updateOneAssignment(id, assignment) {
     const db = getDbReference()
     const collection = db.collection('assignments')
-    const assignments = await collection.replaceOne(
-        { _id: new ObjectId(id)},
+    const assignments = await collection.updateOne(
+        { _id: new ObjectId(id) },
         {
-            courseId: assignment.courseId,
-            title: assignment.title,
-            points: assignment.points,
-            due: assignment.due
+            $set: {
+                courseId: assignment.courseId,
+                title: assignment.title,
+                points: assignment.points,
+                due: assignment.due
+            }
         }
     )
     return assignments
@@ -63,12 +67,14 @@ async function updateOneAssignment(id, assignment){
 exports.updateOneAssignment = updateOneAssignment
 
 
-async function getAssignmentsByCourseId(cid){
+async function getAssignmentsByCourseId(cid) {
     const db = getDbReference()
     const collection = db.collection('assignments')
     const assignments = await collection.find(
         { courseId: cid }
-    ).toArray() 
+    )
+        .project({ _id: 0 })
+        .toArray()
     return assignments
 }
 exports.getAssignmentsByCourseId = getAssignmentsByCourseId
@@ -80,7 +86,7 @@ exports.getAssignmentsByCourseId = getAssignmentsByCourseId
  * 'instructor' User whose ID matches the instructorId of the Course corresponding to 
  * the Assignment's courseId can delete an Assignment.
  */
-async function deleteOneAssignment(id){
+async function deleteOneAssignment(id) {
     const db = getDbReference()
     const collection = db.collection('assignments')
     const assignments = await collection.deleteOne({

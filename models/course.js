@@ -34,6 +34,7 @@ async function getCoursesPage(page) {
     const offset = (page - 1) * pageSize
 
     const results = await collection.find({})
+        .project({ students: 0 })
         .sort({ _id: 1 })
         .skip(offset)
         .limit(pageSize)
@@ -67,12 +68,26 @@ exports.insertNewCourse = insertNewCourse
  * Returns summary data about the Course, excluding the list of students 
  * enrolled in the course and the list of Assignments for the course.
  */
+async function getByIdWithoutStu(id) {
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.find({
+        _id: new ObjectId(id)
+    })
+        .project({ students: 0 })
+        .toArray()
+    return courses[0];
+}
+exports.getByIdWithoutStu = getByIdWithoutStu
+
+
 async function getCourseById(id) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.find({
         _id: new ObjectId(id)
-    }).toArray()
+    })
+        .toArray()
     return courses[0];
 }
 exports.getCourseById = getCourseById
@@ -105,14 +120,16 @@ exports.getCoursesByInstructorId = getCoursesByInstructorId
 async function updateOneCourse(id, course) {
     const db = getDbReference()
     const collection = db.collection('courses')
-    const courses = await collection.replaceOne(
+    const courses = await collection.updateOne(
         { _id: new ObjectId(id) },
         {
-            subject: course.subject,
-            number: course.number,
-            title: course.title,
-            term: course.term,
-            instructorId: course.instructorId
+            $set: {
+                subject: course.subject,
+                number: course.number,
+                title: course.title,
+                term: course.term,
+                instructorId: course.instructorId
+            }
         }
     )
     return courses
@@ -120,23 +137,38 @@ async function updateOneCourse(id, course) {
 exports.updateOneCourse = updateOneCourse
 
 
-/*
- * 
- */
-async function enrollStudent(id, uid) {
+async function addStudents(id, uids) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.updateOne(
         { _id: new ObjectId(id) },
         {
-            $push: {
-                students: uid
+            $addToSet: {
+                students: {
+                    $each: uids
+                }
             }
         }
     )
     return courses
 }
-exports.enrollStudent = enrollStudent
+exports.addStudents = addStudents
+
+
+async function removeStudents(id, uids) {
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+            $pull: {
+                students: { $in: uids }
+            }
+        }
+    )
+    return courses
+}
+exports.removeStudents = removeStudents
 
 
 /*

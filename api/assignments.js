@@ -1,5 +1,6 @@
 const { Router } = require('express')
 const { validateAgainstSchema } = require('../lib/validation')
+const { requireAuthentication } = require('../lib/auth')
 const {
     AssignmentSchema,
     insertNewAssignment,
@@ -7,6 +8,7 @@ const {
     updateOneAssignment,
     deleteOneAssignment
 } = require('../models/assignment')
+const { getByIdWithoutStu } = require('../models/course')
 
 const router = Router()
 
@@ -14,13 +16,20 @@ const router = Router()
 /*
  * POST /assignments - Route to create a new assignment.
  */
-router.post('/', async (req, res) => {
+router.post('/', requireAuthentication, async (req, res) => {
     if (validateAgainstSchema(req.body, AssignmentSchema)) {
         try {
-            const id = await insertNewAssignment(req.body)
-            res.status(201).send({
-                id: id
-            })
+            const course = await getByIdWithoutStu(req.body.courseId)
+            if (req.role == "admin" || course.instructorId == req.user) {
+                const id = await insertNewAssignment(req.body)
+                res.status(201).send({
+                    id: id
+                })
+            } else {
+                res.status(403).send({
+                    error: "Only admin or instructor add assignments."
+                })
+            }
         } catch (err) {
             console.error(err)
             res.status(500).send({
@@ -56,18 +65,32 @@ router.get('/:id', async (req, res, next) => {
 /*
  * PATCH /assignments/{id} - Update data for a specific Assignment.
  */
-router.patch('/:id', async (req, res, next) =>{
-    try {
-        const assignment = await updateOneAssignment(req.params.id, req.body)
-        if (assignment) {
-            res.status(200).send(assignment)
-        } else {
-            next()
+router.patch('/:id', requireAuthentication, async (req, res, next) => {
+    if (validateAgainstSchema(req.body, AssignmentSchema)) {
+        try {
+            const assignment = await getAssignmentById(req.params.id)
+            const course = await getByIdWithoutStu(assignment.courseId)
+            if (req.role == "admin" || course.instructorId == req.user) {
+                const updated = await updateOneAssignment(req.params.id, req.body)
+                if (updated) {
+                    res.status(200).send()
+                } else {
+                    next()
+                }
+            } else {
+                res.status(403).send({
+                    error: "Only admin or instructor can change assignment info."
+                })
+            }
+        } catch (err) {
+            console.error(err)
+            res.status(500).send({
+                error: "Unable to update assignment.  Please try again later."
+            })
         }
-    } catch (err) {
-        console.error(err)
-        res.status(500).send({
-            error: "Unable to update assignment.  Please try again later."
+    } else {
+        res.status(400).send({
+            error: "Request body is not a valid assignment object."
         })
     }
 })
@@ -75,11 +98,19 @@ router.patch('/:id', async (req, res, next) =>{
 /*
  * DELETE /assignments/{id} - Remove a specific Assignment from the database.
  */
-router.delete('/:id', async (req, res, next) =>{
+router.delete('/:id', requireAuthentication, async (req, res, next) => {
     try {
-        const assignment = await deleteOneAssignment(req.params.id)
-        if (assignment) {
-            res.status(200).send(assignment)
+        const assignment = await getAssignmentById(req.params.id)
+        const course = await getByIdWithoutStu(assignment.courseId)
+        if (req.role != "admin" && course.instructorId != req.user) {
+            res.status(403).send({
+                err: "Only admin or instructor user can remove an assignment!"
+            })
+            next()
+        }
+        const deleted = await deleteOneAssignment(req.params.id)
+        if (deleted) {
+            res.status(204).send()
         } else {
             next()
         }
@@ -90,5 +121,6 @@ router.delete('/:id', async (req, res, next) =>{
         })
     }
 })
+
 
 module.exports = router
