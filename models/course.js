@@ -4,11 +4,12 @@ const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
 
 const CourseSchema = {
-    subject: { required: true }, 
-    number: { required: true }, 
-    title: { required: true }, 
-    term: { required: true }, 
-    instructorId: { required: true }
+    subject: { required: true },
+    number: { required: true },
+    title: { required: true },
+    term: { required: true },
+    instructorId: { required: true },
+    students: { required: false }
 }
 
 exports.CourseSchema = CourseSchema
@@ -21,7 +22,7 @@ async function getCoursesPage(page) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const count = await collection.countDocuments()
-  
+
     /*
      * Compute last page number and make sure page is within allowed bounds.
      * Compute offset into collection.
@@ -31,19 +32,19 @@ async function getCoursesPage(page) {
     page = page > lastPage ? lastPage : page
     page = page < 1 ? 1 : page
     const offset = (page - 1) * pageSize
-  
+
     const results = await collection.find({})
-      .sort({ _id: 1 })
-      .skip(offset)
-      .limit(pageSize)
-      .toArray()
-  
+        .sort({ _id: 1 })
+        .skip(offset)
+        .limit(pageSize)
+        .toArray()
+
     return {
-      courses: results,
-      page: page,
-      totalPages: lastPage,
-      pageSize: pageSize,
-      count: count
+        courses: results,
+        page: page,
+        totalPages: lastPage,
+        pageSize: pageSize,
+        count: count
     }
 }
 exports.getCoursesPage = getCoursesPage
@@ -55,7 +56,7 @@ exports.getCoursesPage = getCoursesPage
 async function insertNewCourse(course) {
     const db = getDbReference()
     const collection = db.collection('courses')
-    
+
     course = extractValidFields(course, CourseSchema)
     const result = await collection.insertOne(course)
     return result.insertedId
@@ -66,26 +67,46 @@ exports.insertNewCourse = insertNewCourse
  * Returns summary data about the Course, excluding the list of students 
  * enrolled in the course and the list of Assignments for the course.
  */
-async function getCourseById(id){
+async function getCourseById(id) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.find({
         _id: new ObjectId(id)
-    }).toArray()  
+    }).toArray()
     return courses[0];
 }
 exports.getCourseById = getCourseById
+
+async function getCoursesByStudentId(sid) {
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.find({
+        students: { $all: [sid] }
+    }).toArray()
+    return courses;
+}
+exports.getCoursesByStudentId = getCoursesByStudentId
+
+async function getCoursesByInstructorId(iid) {
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.find({
+        instructorId: iid
+    }).toArray()
+    return courses;
+}
+exports.getCoursesByInstructorId = getCoursesByInstructorId
 
 /*
  * Returns a list containing the User IDs of all students currently enrolled in the Course. 
  * Only an authenticated User with 'admin' role or an authenticated 'instructor' User whose 
  * ID matches the instructorId of the Course can fetch the list of enrolled students.
  */
-async function UpdateOneCourse(id, course){
+async function updateOneCourse(id, course) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.replaceOne(
-        { _id: new ObjectId(id)},
+        { _id: new ObjectId(id) },
         {
             subject: course.subject,
             number: course.number,
@@ -96,13 +117,33 @@ async function UpdateOneCourse(id, course){
     )
     return courses
 }
-exports.UpdateOneCourse = UpdateOneCourse
+exports.updateOneCourse = updateOneCourse
+
+
+/*
+ * 
+ */
+async function enrollStudent(id, uid) {
+    const db = getDbReference()
+    const collection = db.collection('courses')
+    const courses = await collection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+            $push: {
+                students: uid
+            }
+        }
+    )
+    return courses
+}
+exports.enrollStudent = enrollStudent
+
 
 /*
  * Completely removes the data for the specified Course, including all enrolled students, 
  * all Assignments, etc. Only an authenticated User with 'admin' role can remove a Course.
  */
-async function DeleteOneCourse(id){
+async function deleteOneCourse(id) {
     const db = getDbReference()
     const collection = db.collection('courses')
     const courses = await collection.deleteOne({
@@ -110,4 +151,4 @@ async function DeleteOneCourse(id){
     })
     return courses
 }
-exports.DeleteOneCourse = DeleteOneCourse
+exports.deleteOneCourse = deleteOneCourse

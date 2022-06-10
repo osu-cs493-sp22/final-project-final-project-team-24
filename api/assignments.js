@@ -4,8 +4,8 @@ const {
     AssignmentSchema,
     insertNewAssignment,
     getAssignmentById,
-    UpdateOneAssignment,
-    DeleteOneAssignment
+    updateOneAssignment,
+    deleteOneAssignment
 } = require('../models/assignment')
 
 const router = Router()
@@ -58,7 +58,7 @@ router.get('/:id', async (req, res, next) => {
  */
 router.patch('/:id', async (req, res, next) =>{
     try {
-        const assignment = await UpdateOneAssignment(req.params.id, req.body)
+        const assignment = await updateOneAssignment(req.params.id, req.body)
         if (assignment) {
             res.status(200).send(assignment)
         } else {
@@ -77,7 +77,7 @@ router.patch('/:id', async (req, res, next) =>{
  */
 router.delete('/:id', async (req, res, next) =>{
     try {
-        const assignment = await DeleteOneAssignment(req.params.id)
+        const assignment = await deleteOneAssignment(req.params.id)
         if (assignment) {
             res.status(200).send(assignment)
         } else {

@@ -46,7 +46,7 @@ exports.getAssignmentById = getAssignmentById
  * an authenticated 'instructor' User whose ID matches the instructorId of the Course 
  * corresponding to the Assignment's courseId can update an Assignment.
  */
-async function UpdateOneAssignment(id, assignment){
+async function updateOneAssignment(id, assignment){
     const db = getDbReference()
     const collection = db.collection('assignments')
     const assignments = await collection.replaceOne(
@@ -60,7 +60,19 @@ async function UpdateOneAssignment(id, assignment){
     )
     return assignments
 }
-exports.UpdateOneAssignment = UpdateOneAssignment
+exports.updateOneAssignment = updateOneAssignment
+
+
+async function getAssignmentsByCourseId(cid){
+    const db = getDbReference()
+    const collection = db.collection('assignments')
+    const assignments = await collection.find(
+        { courseId: cid }
+    ).toArray() 
+    return assignments
+}
+exports.getAssignmentsByCourseId = getAssignmentsByCourseId
+
 
 /*
  * Completely removes the data for the specified Assignment, including all 
@@ -68,7 +80,7 @@ exports.UpdateOneAssignment = UpdateOneAssignment
  * 'instructor' User whose ID matches the instructorId of the Course corresponding to 
  * the Assignment's courseId can delete an Assignment.
  */
-async function DeleteOneAssignment(id){
+async function deleteOneAssignment(id){
     const db = getDbReference()
     const collection = db.collection('assignments')
     const assignments = await collection.deleteOne({
@@ -76,4 +88,4 @@ async function DeleteOneAssignment(id){
     })
     return assignments
 }
-exports.DeleteOneAssignment = DeleteOneAssignment
+exports.deleteOneAssignment = deleteOneAssignment

@@ -5,8 +5,10 @@ const { generateAuthToken, requireAuthentication } = require('../lib/auth')
 const {
     UserSchema,
     insertNewUser,
-    getUserById
+    getUserById,
+    getUserByEmail
 } = require('../models/user')
+const { getCoursesByStudentId, getCoursesByInstructorId } = require('../models/course')
 
 const router = Router()
 
@@ -14,8 +16,18 @@ const router = Router()
 /*
  * POST /users - Create a new user.
  */
-router.post('/', async (req, res) => {
+router.post('/', requireAuthentication, async (req, res) => {
     if (validateAgainstSchema(req.body, UserSchema)) {
+        if (req.body && (req.body.role == "admin"
+            || req.body.role == "instructor")) {
+            if (req.role != "admin") {
+                res.status(403).send({
+                    err: "Only admin user can create admin or instructor!"
+                })
+                next()
+            }
+        }
+
         const id = await insertNewUser(req.body)
         res.status(201).send({
             _id: id
@@ -30,15 +42,16 @@ router.post('/', async (req, res) => {
 /*
  * POST /users/login - Log in a User.
  */
-router.post('/login', async  (req, res) =>  {
-    if (req.body && req.body.id && req.body.email &&req.body.password) {
-        const user = await getUserById(req.body.id, true)
+router.post('/login', async (req, res) => {
+    if (req.body && req.body.email && req.body.password) {
+        const user = await getUserByEmail(req.body.email);
         const authenticated = user && await bcrypt.compare(
             req.body.password,
             user.password
         )
+
         if (authenticated) {
-            const token = generateAuthToken(req.body.id)
+            const token = generateAuthToken(user._id, user.role)
             res.status(200).send({ token: token })
         } else {
             res.status(401).send({
@@ -57,15 +70,34 @@ router.post('/login', async  (req, res) =>  {
  */
 router.get('/:id', requireAuthentication, async (req, res, next) => {
     console.log("== req.user:", req.user)
+    console.log("== req.role:", req.role)
     if (req.user !== req.params.id) {
         res.status(403).send({
-          err: "Unauthorized to access the specified resource"
+            err: "Unauthorized to access the specified resource"
         })
         next()
     } else {
-        const user = await getUserById(req.params.id)
-        console.log("== req.headers:", req.headers)
+        const user = await getUserById(req.user)
         if (user) {
+            // if the authenticated user is instructor, give courses user teaches
+            if (req.role == "instructor") {
+                console.log(1111111)
+                user.courses = []
+                const courses = await getCoursesByInstructorId(req.user)
+                courses.forEach(course => {
+                    user.courses.push(course._id)
+                });
+            }
+
+            // if the authenticated user is student, give courses user enrolled
+            if (req.role == "student") {
+                user.courses = []
+                const courses = await getCoursesByStudentId(req.user)
+                courses.forEach(course => {
+                    user.courses.push(course._id)
+                });
+            }
+
             res.status(200).send(user)
         } else {
             next()

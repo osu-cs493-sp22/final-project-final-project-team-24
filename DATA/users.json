@@ -9,7 +9,7 @@
       "name": "Tori Lockwood",
       "email": "tori@robnetts.com",
       "password": "hunter2",
-      "role": "instructor"
+      "role": "admin"
     },
     {
       "name": "Joel Rea",
@@ -21,67 +21,79 @@
       "name": "The Owners",
       "email": "owners@firstalt.coop",
       "password": "hunter2",
-      "role": "student"
+      "role": "instructor"
     },
     {
       "name": "Kim Marchesi",
       "email": "kim@localboyzhawaiiancafe.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "instructor"
     },
     {
       "name": "William McCanless",
       "email": "william@interzoneorganic1.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "instructor"
     },
     {
       "name": "Paul Turner",
       "email": "paul@darksidecinema.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Cody Utzman",
       "email": "cody@bodhibakery.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Winco Employees",
       "email": "employees@wincofoods.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Philip Wilson",
       "email": "philib@bookbin.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Fred Meyer",
       "email": "fred@fredmeyer.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Mike Easter",
       "email": "mike@cyclotopia.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Casey Collett",
       "email": "casey@oregoncoffeeandtea.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "John Semadeni",
       "email": "john@corvalliscycleryinc.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Alex Spaeth",
       "email": "alex@spaethlumber.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     },
     {
       "name": "Tristan James",
       "email": "tristan@newmorningbakery.com",
-      "password": "hunter2"
+      "password": "hunter2",
+      "role": "student"
     }
   ]
   

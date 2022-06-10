@@ -5,8 +5,8 @@ const {
     getCoursesPage, 
     insertNewCourse,
     getCourseById,
-    UpdateOneCourse,
-    DeleteOneCourse
+    updateOneCourse,
+    deleteOneCourse
 } = require('../models/course')
 
 const router = Router()
@@ -86,7 +86,7 @@ router.get('/:id', async (req, res, next) => {
  */
 router.patch('/:id', async (req, res, next) =>{
     try {
-        const course = await UpdateOneCourse(req.params.id, req.body)
+        const course = await updateOneCourse(req.params.id, req.body)
         if (course) {
             res.status(200).send(course)
         } else {
@@ -105,7 +105,7 @@ router.patch('/:id', async (req, res, next) =>{
  */
 router.delete('/:id', async (req, res, next) =>{
     try {
-        const course = await DeleteOneCourse(req.params.id)
+        const course = await deleteOneCourse(req.params.id)
         if (course) {
             res.status(200).send(course)
         } else {
