@@ -12,11 +12,10 @@ const {
     addStudents,
     removeStudents,
 } = require('../models/course')
-const { getUserById } = require('../models/user')
+const { getUserById, getUserByIdWithId } = require('../models/user')
 const { getAssignmentsByCourseId } = require('../models/assignment')
 
 const fs = require('fs');
-const stringify = require('csv-stringify');
 const router = Router()
 
 /*
@@ -153,30 +152,6 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
     }
 })
 
-// get the course student info list into csv file
-router.get('/:id/roster', async (req, res, next) =>{
-    try {
-        const course = await getCourseById(req.params.id)
-        // if (req.role == "admin" || (req.role == "instructor" && req.userId == course.instructorId)){
-        //     // const studentSet = getStudentByCourseId(req.params.id)
-        // }
-        const studentIds = course.students
-        
-        const data = JSON.stringify(studentIds, {header: false})
-        console.log(data)
-        fs.writeFile('./roster.csv', data, (err) => {
-            if (err) throw err;
-            const filename = './roster.csv'
-            res.status(200).download(filename)
-        })
-        
-    }catch (err) {
-        console.error(err)
-        res.status(500).send({
-            error: "Unable get the roster.  Please try again later."
-        })
-    }
-})
 
 router.get('/:id/students', requireAuthentication, async (req, res) => {
     const course = await getCourseById(req.params.id)
@@ -191,7 +166,6 @@ router.get('/:id/students', requireAuthentication, async (req, res) => {
                     return student
                 });
                 students = await Promise.all(promise)
-                console.log(students)
             }
             res.status(200).send({ students: students })
         } else {
@@ -236,8 +210,55 @@ router.post('/:id/students', requireAuthentication, async (req, res) => {
     }
 })
 
+// get the course student info list into csv file
+router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
+    try {
+        const course = await getCourseById(req.params.id)
+        if (req.role == "admin" || course.instructorId == req.user) {
+            let students = []
+            if (course.students) {
+                const promise = course.students.map(async studentId => {
+                    const student = await getUserByIdWithId(studentId);
+                    return student
+                });
+                students = await Promise.all(promise)
 
-router.get('/:id/assignments', async (req, res) => {
+                let stringify = "";
+
+                students.forEach(student => {
+                    if (student) {
+                        stringify += (student._id + ',"'
+                            + student.name + '",'
+                            + student.email + "\n")
+                    }
+                });
+
+                if (!fs.existsSync('./csv')) {
+                    fs.mkdirSync('./csv');
+                }
+                fs.writeFile('./csv/roster.csv', stringify, (err) => {
+                    if (err) throw err;
+                    const filename = './csv/roster.csv'
+                    res.status(200).download(filename)
+                })
+            } else {
+                next()
+            }
+        } else {
+            res.status(403).send({
+                error: "Only admin or instructor can download csv."
+            })
+        }
+    } catch (err) {
+        console.error(err)
+        res.status(500).send({
+            error: "Unable get the roster.  Please try again later."
+        })
+    }
+})
+
+
+router.get('/:id/assignments', async (req, res, next) => {
     const course = await getCourseById(req.params.id)
 
     if (course) {

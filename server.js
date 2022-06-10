@@ -3,6 +3,7 @@ const morgan = require('morgan')
 
 const api = require('./api')
 const { connectToDb } = require('./lib/mongo')
+const { getDownloadStreamById } = require('./models/submission')
 
 const app = express()
 const port = process.env.PORT || 8000
@@ -13,7 +14,18 @@ const port = process.env.PORT || 8000
 app.use(morgan('dev'))
 
 app.use(express.json())
-app.use(express.static('public'))
+
+app.get('/file/:filename', (req, res, next) => {
+    getDownloadStreamById(req.params.filename)
+    .on('error', (err) => {
+      if (err.code === 'ENOENT') {
+        next();
+      } else {
+        next(err);
+      }
+    }) 
+    .pipe(res); 
+  });
 
 
 /*
