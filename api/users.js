@@ -16,7 +16,7 @@ const router = Router()
 /*
  * POST /users - Create a new user.
  */
-router.post('/', requireAuthentication, async (req, res) => {
+router.post('/', requireAuthentication, async (req, res, next) => {
     if (validateAgainstSchema(req.body, UserSchema)) {
         if (req.body && (req.body.role == "admin"
             || req.body.role == "instructor")) {
@@ -75,20 +75,18 @@ router.get('/:id', requireAuthentication, async (req, res, next) => {
         res.status(403).send({
             err: "Unauthorized to access the specified resource"
         })
-        next()
+        return
     } else {
         const user = await getUserById(req.user)
         if (user) {
             // if the authenticated user is instructor, give courses user teaches
             if (req.role == "instructor") {
-                console.log(1111111)
                 user.courses = []
                 const courses = await getCoursesByInstructorId(req.user)
                 courses.forEach(course => {
                     user.courses.push(course._id)
                 });
             }
-
             // if the authenticated user is student, give courses user enrolled
             if (req.role == "student") {
                 user.courses = []
@@ -97,15 +95,14 @@ router.get('/:id', requireAuthentication, async (req, res, next) => {
                     user.courses.push(course._id)
                 });
             }
-
             res.status(200).send(user)
         } else {
-            next()
+            res.status(404).send({
+                err: "Cannot find the id"
+            })
         }
     }
 })
-
-
 
 
 module.exports = router

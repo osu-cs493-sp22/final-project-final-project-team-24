@@ -50,14 +50,14 @@ router.get('/', async (req, res) => {
 /*
  * POST /courses - Route to create a new courses.
  */
-router.post('/', requireAuthentication, async (req, res) => {
+router.post('/', requireAuthentication, async (req, res, next) => {
     if (validateAgainstSchema(req.body, CourseSchema)) {
         try {
             if (req.role != "admin") {
                 res.status(403).send({
                     err: "Only admin user can create a course!"
                 })
-                next()
+                return
             }
 
             const id = await insertNewCourse(req.body)
@@ -103,6 +103,7 @@ router.patch('/:id', requireAuthentication, async (req, res, next) => {
     if (validateAgainstSchema(req.body, CourseSchema)) {
         try {
             const course = await getByIdWithoutStu(req.params.id)
+            console.log(req.role)
             if (req.role == "admin" || course.instructorId == req.user) {
                 const updated = await updateOneCourse(req.params.id, req.body)
                 if (updated) {
@@ -137,13 +138,15 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
             res.status(403).send({
                 err: "Only admin user can remove a course!"
             })
-            next()
+            return
         }
         const deleted = await deleteOneCourse(req.params.id)
         if (deleted) {
             res.status(204).send()
         } else {
-            next()
+            res.status(404).send({
+                err: "cannot find the course id"
+            })
         }
     } catch (err) {
         console.error(err)
@@ -178,7 +181,7 @@ router.get('/:id/roster', async (req, res, next) =>{
     }
 })
 
-router.get('/:id/students', requireAuthentication, async (req, res) => {
+router.get('/:id/students', requireAuthentication, async (req, res, next) => {
     const course = await getCourseById(req.params.id)
 
     if (course) {
@@ -210,17 +213,23 @@ router.post('/:id/students', requireAuthentication, async (req, res) => {
     if (req.body && req.body.add && req.body.remove) {
         try {
             const course = await getByIdWithoutStu(req.params.id)
-            if (req.role == "admin" || course.instructorId == req.user) {
-                const added = await addStudents(req.params.id, req.body.add)
-                const removed = await removeStudents(req.params.id, req.body.remove)
-                if (added && removed) {
-                    res.status(200).send()
+            if(course){
+                if (req.role == "admin" || course.instructorId == req.user) {
+                    const added = await addStudents(req.params.id, req.body.add)
+                    const removed = await removeStudents(req.params.id, req.body.remove)
+                    if (added && removed) {
+                        res.status(200).send()
+                    } else {
+                        next()
+                    }
                 } else {
-                    next()
+                    res.status(403).send({
+                        error: "Only admin or instructor can enroll or unenroll students."
+                    })
                 }
-            } else {
-                res.status(403).send({
-                    error: "Only admin or instructor can enroll or unenroll students."
+            }else{
+                res.status(404).send({
+                    error: "Specified Course id not found."
                 })
             }
         } catch (err) {

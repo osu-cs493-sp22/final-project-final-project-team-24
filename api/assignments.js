@@ -20,14 +20,20 @@ router.post('/', requireAuthentication, async (req, res) => {
     if (validateAgainstSchema(req.body, AssignmentSchema)) {
         try {
             const course = await getByIdWithoutStu(req.body.courseId)
-            if (req.role == "admin" || course.instructorId == req.user) {
-                const id = await insertNewAssignment(req.body)
-                res.status(201).send({
-                    id: id
-                })
-            } else {
-                res.status(403).send({
-                    error: "Only admin or instructor add assignments."
+            if (course){
+                if (req.role == "admin" || course.instructorId == req.user) {
+                    const id = await insertNewAssignment(req.body)
+                    res.status(201).send({
+                        id: id
+                    })
+                } else {
+                    res.status(403).send({
+                        error: "Only admin or instructor add assignments."
+                    })
+                }
+            }else{
+                res.status(404).send({
+                    error: "Specified Course id not found."
                 })
             }
         } catch (err) {
@@ -69,17 +75,23 @@ router.patch('/:id', requireAuthentication, async (req, res, next) => {
     if (validateAgainstSchema(req.body, AssignmentSchema)) {
         try {
             const assignment = await getAssignmentById(req.params.id)
-            const course = await getByIdWithoutStu(assignment.courseId)
-            if (req.role == "admin" || course.instructorId == req.user) {
-                const updated = await updateOneAssignment(req.params.id, req.body)
-                if (updated) {
-                    res.status(200).send()
+            if(assignment){
+                const course = await getByIdWithoutStu(assignment.courseId)
+                if (req.role == "admin" || course.instructorId == req.user) {
+                    const updated = await updateOneAssignment(req.params.id, req.body)
+                    if (updated) {
+                        res.status(200).send()
+                    } else {
+                        next()
+                    }
                 } else {
-                    next()
+                    res.status(403).send({
+                        error: "Only admin or instructor can change assignment info."
+                    })
                 }
-            } else {
-                res.status(403).send({
-                    error: "Only admin or instructor can change assignment info."
+            }else{
+                res.status(404).send({
+                    error: "Specified assignment id not found."
                 })
             }
         } catch (err) {
@@ -101,18 +113,24 @@ router.patch('/:id', requireAuthentication, async (req, res, next) => {
 router.delete('/:id', requireAuthentication, async (req, res, next) => {
     try {
         const assignment = await getAssignmentById(req.params.id)
-        const course = await getByIdWithoutStu(assignment.courseId)
-        if (req.role != "admin" && course.instructorId != req.user) {
-            res.status(403).send({
-                err: "Only admin or instructor user can remove an assignment!"
+        if(assignment){
+            const course = await getByIdWithoutStu(assignment.courseId)
+            if (req.role != "admin" && course.instructorId != req.user) {
+                console.log(req.role)
+                res.status(403).send({
+                    err: "Only admin or instructor user can remove an assignment!"
+                })
+                return
+            }
+            const deleted = await deleteOneAssignment(req.params.id)
+            if (deleted) {
+                res.status(204).send()
+                return
+            }
+        }else{
+            res.status(404).send({
+                error: "Specified assignment id not found."
             })
-            next()
-        }
-        const deleted = await deleteOneAssignment(req.params.id)
-        if (deleted) {
-            res.status(204).send()
-        } else {
-            next()
         }
     } catch (err) {
         console.error(err)
